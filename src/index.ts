@@ -1,71 +1,55 @@
-import { log } from 'console';
 import express from 'express';
 import sharp from 'sharp';
-import path from 'path';
+import fs from 'fs';
+import Cache from 'streaming-cache';
+const cache = new Cache();
 
 const app = express();
 const port = 3000;
 
-const resizeImg = (
-  filename: string,
-  width: number,
-  height: number,
-) => {
-  try {
-    sharp(`./assets/images/${filename}`)
-      .resize(width, height)
-      .toFile(
-        `./assets/thumbnails/thumb_${width}_${
-          height ? height : ''
-        }_${filename}`,
-      );
-  } catch (err) {
-    if (!err) return;
-    console.log(err.message);
-  }
-};
-
-app.get('/api/images', (req, res) => {
-  const query = req.query;
-  log(query);
-  const { filename, width, height } = query;
-  () => {
-    if (
-      typeof filename === 'string' &&
-      typeof width === 'string' &&
-      typeof height === 'string'
-    ) {
-      const widthNo = parseInt(width);
-      const heightNo = parseInt(height);
-      log({ filename, widthNo, heightNo });
-      resizeImg(filename, widthNo, heightNo);
-    }
-    res.sendFile(
-      `./assets/thumbnails/thumb_${width}_${height}_${filename}`,
-    );
-  };
-});
+// const resizeImg = async (
+//   fileName: string,
+//   width: number,
+//   height: number,
+// ) => {
+//   await sharp(fileName)
+//     .resize(width, height)
+//     .toFile(`output/${fileName}`);
+// };
 
 app.get('/', (req, res) => {
-  res.sendFile(
-    path.resolve(
-      ...[`${__dirname}/../assets/images/fjord.jpg`],
-    ),
-    (err) => {
-      if (err) {
-        console.log(err.message);
-      }
-      log(
-        path.resolve(
-          ...[`${__dirname}/../assets/images/fjord.jpg`],
-        ),
-      );
-    },
+  res.send('starting the app');
+});
+
+app.get('/convert', (req, res) => {
+  const { fileName, width, height } = req.query;
+  if (
+    typeof fileName === 'string' &&
+    typeof width === 'string' &&
+    typeof height === 'string'
+  ) {
+    const readable = fs.createReadStream(`./assets/images/${fileName}`);
+
+    const sharpStream = sharp().resize(parseInt(width), parseInt(height));
+    const writable = fs.createWriteStream(`./output/${fileName}`);
+    readable.pipe(sharpStream);
+    sharpStream.clone().pipe(res);
+    sharpStream.clone().pipe(writable);
+  }
+});
+
+app.get('/image', (req, res) => {
+  const readable = fs.createReadStream('./assets/images/palmtunnel.jpg');
+  readable.pipe(res);
+});
+
+app.get('/video', (req, res) => {
+  const readable = fs.createReadStream(
+    'Breaking-Bad s02ep8 720p brrip.sujaidr.mkv',
   );
+  readable.pipe(res);
 });
 
 app.listen(port, () => {
   console.log(`listening on port ${port}`);
 });
-
-console.log(__filename);
