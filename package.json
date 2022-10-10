@@ -7,8 +7,9 @@
     "test": "npm run build && npx jasmine",
     "build": "npx tsc",
     "dev": "nodemon",
-    "start": "node dist/main",
-    "lint": "eslint . --ext .ts"
+    "start": "node dist/index",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write"
   },
   "repository": {
     "type": "git",
