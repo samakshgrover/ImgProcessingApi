@@ -9,7 +9,7 @@
     "dev": "nodemon",
     "start": "node dist/index",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write"
+    "format": "prettier --write src/**/*.ts"
   },
   "repository": {
     "type": "git",
