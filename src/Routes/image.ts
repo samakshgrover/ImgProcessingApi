@@ -1,7 +1,6 @@
-import express from 'express';
-import { checkCache, fileString, getCache, setCache } from '../helpers/cache';
-import sharp from 'sharp';
-import fs from 'fs';
+import express, { Request, Response } from 'express';
+import { checkCache, fileString, getCache } from '../helpers/cache';
+import resizeAndSendResponse from '../helpers/resize';
 
 const router = express.Router();
 
@@ -33,7 +32,9 @@ function isImgData(valueToTest: any): valueToTest is ImgData {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function assertIsImgData(valueToTest: any): asserts valueToTest is ImgData {
   if (!isImgData(valueToTest)) {
-    throw new Error(`Value does not appear to be a ImgData${valueToTest}`);
+    throw new Error(
+      `Invalid Query, please visit "/" for more information about Api`,
+    );
   }
 }
 
@@ -41,13 +42,20 @@ function validFileName(fileName: string) {
   if (!imgArr.includes(fileName)) throw new Error('Invalid File Name');
 }
 
-router.get('/', async (req, res) => {
+function validWidthAndHeight(width: string, height: string) {
+  if (parseInt(width) || parseInt(height))
+    throw new Error('Width And Height must be greater then zero');
+}
+
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const { fileName, width, height } = req.query;
     const data = { fileName, width, height };
 
     assertIsImgData(data);
     validFileName(data.fileName);
+    validWidthAndHeight(data.width, data.height);
+
     const file = fileString(data.width, data.height, data.fileName);
 
     if (await checkCache(file)) {
@@ -59,27 +67,14 @@ router.get('/', async (req, res) => {
       console.log('cached Image');
       res.end(result);
     } else {
-      const readStream = fs.createReadStream(
-        `./assets/images/${data.fileName}`,
-      );
-      const sharpStream = sharp().resize(
-        parseInt(data.width),
-        parseInt(data.height),
-      );
-      const writeStream = await setCache(
-        data.fileName,
-        data.width,
-        data.height,
-      );
-      if (writeStream) {
-        console.log('not cached image');
-        readStream.pipe(sharpStream);
-        sharpStream.pipe(writeStream);
-        sharpStream.pipe(res);
-      }
+      resizeAndSendResponse({ data, res });
     }
   } catch (error) {
-    res.status(400).send('bad request');
+    if (typeof error === 'string') {
+      res.status(400).send(error);
+    } else if (error instanceof Error) {
+      res.status(400).send(error.message);
+    }
   }
 });
 export default router;

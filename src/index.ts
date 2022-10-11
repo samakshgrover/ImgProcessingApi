@@ -1,18 +1,18 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import imageList from './Routes/imageList';
 import imageRouter from './Routes/image';
-
+import path from 'path';
 const app = express();
-const port = 5000;
+const port = 3000;
 
-app.use('/listimage', imageList);
+app.use('/listimages', imageList);
 app.use('/images/convert', imageRouter);
 
-app.get('/', (req, res) => {
-  res.send('App started');
+app.get('/', (_req: Request, res: Response): void => {
+  res.sendFile(path.resolve(__dirname, './helpers/index.html'));
 });
 
-app.listen(port, () => {
+app.listen(port, (): void => {
   console.log(`app listening on port ${port}`);
 });
 
