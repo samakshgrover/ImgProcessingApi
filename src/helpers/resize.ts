@@ -1,4 +1,3 @@
-import { Response } from 'express';
 import fs from 'fs';
 import sharp from 'sharp';
 import { setCache } from './cache';
@@ -9,25 +8,27 @@ interface Data {
   height: string;
 }
 
-async function resizeAndSendResponse({
-  data,
-  res,
-}: {
-  data: Data;
-  res: Response;
-}) {
-  const readStream = fs.createReadStream(`./assets/images/${data.fileName}`);
-  const sharpStream = sharp().resize(
-    parseInt(data.width),
-    parseInt(data.height),
-  );
-  const writeStream = await setCache(data.fileName, data.width, data.height);
+async function resizeAndSendResponse(data: Data) {
+  try {
+    const readStream = fs.createReadStream(`./assets/images/${data.fileName}`);
+    const sharpStream = sharp().resize(
+      parseInt(data.width),
+      parseInt(data.height),
+    );
+    const writeStream = await setCache(data.fileName, data.width, data.height);
 
-  if (writeStream) {
-    console.log('not cached image');
-    readStream.pipe(sharpStream);
-    sharpStream.pipe(writeStream);
-    sharpStream.pipe(res);
+    if (writeStream) {
+      console.log('not cached image');
+      readStream.pipe(sharpStream);
+      sharpStream.pipe(writeStream);
+      return sharpStream;
+    } else {
+      throw new Error('An Error occured while performing resizing opration');
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
   }
 }
 

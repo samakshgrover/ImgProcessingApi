@@ -43,7 +43,7 @@ function validFileName(fileName: string) {
 }
 
 function validWidthAndHeight(width: string, height: string) {
-  if (parseInt(width) || parseInt(height))
+  if (!parseInt(width) || !parseInt(height))
     throw new Error('Width And Height must be greater then zero');
 }
 
@@ -67,7 +67,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       console.log('cached Image');
       res.end(result);
     } else {
-      resizeAndSendResponse({ data, res });
+      const sharpStream = await resizeAndSendResponse(data);
+      if (sharpStream) {
+        sharpStream.pipe(res);
+      }
     }
   } catch (error) {
     if (typeof error === 'string') {
@@ -77,4 +80,5 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     }
   }
 });
+
 export default router;
